@@ -1,0 +1,23 @@
+{
+  "eval_time_s": 15.06,
+  "hmm_params": {
+    "emission_weight": 1.0,
+    "hop1_penalty": 0.25,
+    "hop2_penalty": 1.2,
+    "disc_penalty": 5.5
+  },
+  "classifier_only": {
+    "mean_top1_acc": 0.8663,
+    "mean_continuity": 0.9164,
+    "mean_arc_f1": 0.8285,
+    "mean_jaccard": 0.7118,
+    "mean_lcs_f1": 0.6723
+  },
+  "classifier_plus_hmm": {
+    "mean_top1_acc": 0.895,
+    "mean_continuity": 0.9702,
+    "mean_arc_f1": 0.8862,
+    "mean_jaccard": 0.7993,
+    "mean_lcs_f1": 0.763
+  }
+}
