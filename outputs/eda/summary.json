@@ -1,0 +1,194 @@
+{
+  "train": {
+    "trip_count": 80,
+    "gps_observations_min_median_max": [
+      361,
+      1529,
+      19313
+    ],
+    "nodes_min_median_max": [
+      299,
+      9608,
+      155003
+    ],
+    "arcs_min_median_max": [
+      649,
+      19526,
+      307392
+    ],
+    "route_arcs_min_median_max": [
+      59,
+      280,
+      2266
+    ],
+    "one_second_interval_fraction_mean": 0.938296103658152,
+    "max_timestamp_gap_seconds_max": 153064.0,
+    "trips_with_gap_over_5_seconds": 45,
+    "timestamp_nonpositive_steps_total": 0,
+    "invalid_gps_rows_total": 0,
+    "route_ids_in_range_all": true,
+    "arc_node_ids_in_range_all": true,
+    "route_directed_continuity_min_median": [
+      0.9813084112149533,
+      1.0
+    ],
+    "worst_gap_trip_ids": [
+      {
+        "partition": "train",
+        "trip_id": "00000090",
+        "gps_observations": 536,
+        "road_nodes": 4010,
+        "road_segments": 7942,
+        "reference_route_arcs": 235,
+        "one_second_interval_fraction": 0.5813084112149532,
+        "max_timestamp_gap_seconds": 153064.0,
+        "gaps_over_5_seconds": 20,
+        "nonpositive_timestamp_steps": 0,
+        "invalid_gps_rows": 0,
+        "route_arc_ids_in_range": true,
+        "arc_node_ids_in_range": true,
+        "reference_route_directed_continuity": 1.0,
+        "min_longitude": 10.417463,
+        "max_longitude": 10.465737,
+        "min_latitude": 51.618723,
+        "max_latitude": 51.626741
+      },
+      {
+        "partition": "train",
+        "trip_id": "00000078",
+        "gps_observations": 2909,
+        "road_nodes": 75230,
+        "road_segments": 151458,
+        "reference_route_arcs": 1765,
+        "one_second_interval_fraction": 0.7551581843191196,
+        "max_timestamp_gap_seconds": 52810.0,
+        "gaps_over_5_seconds": 124,
+        "nonpositive_timestamp_steps": 0,
+        "invalid_gps_rows": 0,
+        "route_arc_ids_in_range": true,
+        "arc_node_ids_in_range": true,
+        "reference_route_directed_continuity": 1.0,
+        "min_longitude": 3.586272,
+        "max_longitude": 4.19645,
+        "min_latitude": 44.226923,
+        "max_latitude": 44.36736
+      },
+      {
+        "partition": "train",
+        "trip_id": "00000069",
+        "gps_observations": 2067,
+        "road_nodes": 8556,
+        "road_segments": 17193,
+        "reference_route_arcs": 467,
+        "one_second_interval_fraction": 0.989351403678606,
+        "max_timestamp_gap_seconds": 2658.0,
+        "gaps_over_5_seconds": 2,
+        "nonpositive_timestamp_steps": 0,
+        "invalid_gps_rows": 0,
+        "route_arc_ids_in_range": true,
+        "arc_node_ids_in_range": true,
+        "reference_route_directed_continuity": 0.9978540772532188,
+        "min_longitude": -52.804119,
+        "max_longitude": -52.745174,
+        "min_latitude": 47.523928,
+        "max_latitude": 47.564999
+      }
+    ]
+  },
+  "student_test": {
+    "trip_count": 10,
+    "gps_observations_min_median_max": [
+      262,
+      1420,
+      3958
+    ],
+    "nodes_min_median_max": [
+      1770,
+      6596,
+      26635
+    ],
+    "arcs_min_median_max": [
+      3577,
+      13145,
+      56027
+    ],
+    "route_arcs_min_median_max": [
+      95,
+      250,
+      1323
+    ],
+    "one_second_interval_fraction_mean": 0.9819896936551981,
+    "max_timestamp_gap_seconds_max": 210.0,
+    "trips_with_gap_over_5_seconds": 2,
+    "timestamp_nonpositive_steps_total": 0,
+    "invalid_gps_rows_total": 0,
+    "route_ids_in_range_all": true,
+    "arc_node_ids_in_range_all": true,
+    "route_directed_continuity_min_median": [
+      0.9973190348525469,
+      1.0
+    ],
+    "worst_gap_trip_ids": [
+      {
+        "partition": "student_test",
+        "trip_id": "00000065",
+        "gps_observations": 768,
+        "road_nodes": 6448,
+        "road_segments": 13184,
+        "reference_route_arcs": 145,
+        "one_second_interval_fraction": 0.9856584093872229,
+        "max_timestamp_gap_seconds": 210.0,
+        "gaps_over_5_seconds": 5,
+        "nonpositive_timestamp_steps": 0,
+        "invalid_gps_rows": 0,
+        "route_arc_ids_in_range": true,
+        "arc_node_ids_in_range": true,
+        "reference_route_directed_continuity": 1.0,
+        "min_longitude": 49.263178,
+        "max_longitude": 49.329869,
+        "min_latitude": 53.512628,
+        "max_latitude": 53.53894
+      },
+      {
+        "partition": "student_test",
+        "trip_id": "00000076",
+        "gps_observations": 1486,
+        "road_nodes": 26635,
+        "road_segments": 56027,
+        "reference_route_arcs": 374,
+        "one_second_interval_fraction": 0.8612794612794613,
+        "max_timestamp_gap_seconds": 32.0,
+        "gaps_over_5_seconds": 39,
+        "nonpositive_timestamp_steps": 0,
+        "invalid_gps_rows": 0,
+        "route_arc_ids_in_range": true,
+        "arc_node_ids_in_range": true,
+        "reference_route_directed_continuity": 0.9973190348525469,
+        "min_longitude": 43.961393,
+        "max_longitude": 44.033831,
+        "min_latitude": 56.240407,
+        "max_latitude": 56.328848
+      },
+      {
+        "partition": "student_test",
+        "trip_id": "00000056",
+        "gps_observations": 3958,
+        "road_nodes": 14759,
+        "road_segments": 27631,
+        "reference_route_arcs": 1323,
+        "one_second_interval_fraction": 0.989638615112459,
+        "max_timestamp_gap_seconds": 3.0,
+        "gaps_over_5_seconds": 0,
+        "nonpositive_timestamp_steps": 0,
+        "invalid_gps_rows": 0,
+        "route_arc_ids_in_range": true,
+        "arc_node_ids_in_range": true,
+        "reference_route_directed_continuity": 1.0,
+        "min_longitude": -93.424337,
+        "max_longitude": -93.348525,
+        "min_latitude": 44.836021,
+        "max_latitude": 44.8734
+      }
+    ]
+  }
+}

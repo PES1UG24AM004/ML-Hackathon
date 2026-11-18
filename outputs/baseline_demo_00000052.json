@@ -1,0 +1,22 @@
+{
+  "trip_id": "00000052",
+  "method": "nearest road-segment baseline; KD-tree midpoint candidates + exact point-to-segment projection",
+  "inference_inputs": [
+    ".track",
+    ".nodes",
+    ".arcs"
+  ],
+  "reference_route_used": false,
+  "metrics": {
+    "gps_points": 262,
+    "road_segments": 3577,
+    "mean_offset_m": 4.642175328212701,
+    "median_offset_m": 3.49037345690681,
+    "p95_offset_m": 12.542059887373581,
+    "max_offset_m": 24.810348086875443,
+    "directed_edge_continuity": 0.2413793103448276
+  },
+  "map": "outputs\\maps\\00000052.html",
+  "offline_map": "outputs\\offline_maps\\00000052.html",
+  "interpretation": "Snap offsets measure geometric distance to selected road segments. Directed continuity is the fraction of consecutive predicted directed edges that connect end-to-start. Neither metric is route accuracy or F1-score."
+}
