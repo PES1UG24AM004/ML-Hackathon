@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>PathSnap — Technical Report</title>
+  <style>
+    :root {
+      --primary: #1e3a5f;
+      --accent: #0f766e;
+      --surface: #f4f7fb;
+      --border: #d8e2ef;
+      --text: #1f2937;
+      --muted: #4b5563;
+      --bg: #ffffff;
+    }
+    body {
+      font-family: 'DejaVu Sans', -apple-system, sans-serif;
+      font-size: 11pt;
+      line-height: 1.55;
+      color: var(--text);
+      margin: 20px auto;
+      max-width: 900px;
+      padding: 0 15px;
+    }
+    h1 { font-size: 22pt; font-weight: 800; color: var(--primary); margin: 0 0 8px 0; }
+    h2 { font-size: 15pt; font-weight: 700; color: var(--primary); margin: 24px 0 10px 0; padding-bottom: 5px; border-bottom: 2px solid var(--primary); }
+    h3 { font-size: 12pt; font-weight: 700; color: var(--primary); margin: 16px 0 6px 0; }
+    p { margin: 0 0 10px 0; }
+    ul { margin: 0 0 10px 0; padding-inline-start: 20px; }
+    li { margin-bottom: 4px; }
+    .banner {
+      background: var(--surface);
+      border-inline-start: 5px solid var(--primary);
+      padding: 16px 20px;
+      border-radius: 6px;
+      margin-bottom: 18px;
+    }
+    .meta { font-size: 10pt; color: var(--muted); margin-top: 6px; }
+    .callout {
+      background: var(--surface);
+      border-inline-start: 4px solid var(--accent);
+      padding: 12px 16px;
+      border-radius: 6px;
+      margin: 14px 0;
+    }
+    table { width: 100%; border-collapse: collapse; margin: 14px 0; }
+    th, td { padding: 7px 8px; font-size: 10pt; text-align: start; vertical-align: top; border-bottom: 1px solid var(--border); }
+    th { background: var(--primary); color: #ffffff; font-weight: 700; }
+    th.num, td.num { text-align: right; font-variant-numeric: tabular-nums; }
+    tbody tr:nth-child(even) { background: var(--surface); }
+    figure { margin: 14px 0; }
+    figure img { width: 100%; max-height: 540px; object-fit: contain; display: block; margin: 0 auto; border: 1px solid var(--border); border-radius: 4px; }
+    figcaption { font-size: 9pt; color: var(--muted); text-align: center; margin-top: 6px; }
+  </style>
+</head>
+<body>
+<main class="document-flow">
+  <div class="banner">
+    <h1>PathSnap: Distributed Map-Matching &amp; Route Reconstruction</h1>
+    <div><strong>UE24CS352A: Machine Learning Hackathon — Technical Report</strong></div>
+    <div class="meta">PES University, Department of CSE &nbsp;|&nbsp; Team SRNs: <strong>PES1UG24AM004, PES1UG24AM005, PES1UG24AM006, PES1UG24AM007</strong></div>
+  </div>
+
+  <h2>1. Problem Overview &amp; Pipeline Architecture</h2>
+  <p>
+    PathSnap solves vehicle trajectory map-matching and sequence route reconstruction on low-frequency, noisy GPS data. The system decouples candidate generation (KD-tree top-8 arcs), discriminative candidate classification (6 pure NumPy models), and topological route reconstruction via Hidden Markov Model (HMM) Viterbi dynamic programming.
+  </p>
+
+  <h2>2. Dataset Understanding &amp; Exploratory Data Analysis</h2>
+  <p>
+    We inspected the 80 <strong>training</strong> trips (208,417 GPS observations) and 10 <strong>student-testing</strong> trips (19,160 GPS observations). Projecting each trip into a <strong>per-trip Local Azimuthal Equidistant (AEQD)</strong> frame centered at the trajectory median preserves exact metric scale and relative angles.
+  </p>
+  <figure>
+    <img src="../figures/eda_overview.png" alt="EDA Overview">
+    <figcaption>Figure 1: Exploratory Data Analysis across the 80 training and 10 student-testing trips.</figcaption>
+  </figure>
+
+  <h2>3. Model Experimentation and Comparison</h2>
+  <p>
+    We trained and evaluated six distinct models across five algorithm families using 5-fold group-aware cross-validation on the 80 training trips, evaluated on the 10 student-testing trips.
+  </p>
+  <table>
+    <thead>
+      <tr>
+        <th>Model</th>
+        <th>Family</th>
+        <th>Key Configuration</th>
+        <th class="num">CV Macro F1</th>
+        <th class="num">Top-1 Acc</th>
+        <th class="num">Continuity</th>
+        <th class="num">Test Macro F1</th>
+        <th class="num">Log Loss</th>
+        <th class="num">Inf. Time</th>
+      </tr>
+    </thead>
+    <tbody>
+      
+        <tr>
+          <td><strong>Logistic Regression</strong></td>
+          <td>Linear and probabilistic</td>
+          <td>L2 C=1.0, L-BFGS-B, max_iter=60</td>
+          <td class="num">0.8715 &plusmn; 0.0152</td>
+          <td class="num">0.8462</td>
+          <td class="num">0.9167</td>
+          <td class="num">0.8946</td>
+          <td class="num">0.1357</td>
+          <td class="num">0.0088s</td>
+        </tr>
+        <tr>
+          <td><strong>Gaussian Naive Bayes</strong></td>
+          <td>Linear and probabilistic</td>
+          <td>var_smoothing=1e-6</td>
+          <td class="num">0.6093 &plusmn; 0.0563</td>
+          <td class="num">0.8359</td>
+          <td class="num">0.9127</td>
+          <td class="num">0.6049</td>
+          <td class="num">2.2160</td>
+          <td class="num">0.0470s</td>
+        </tr>
+        <tr>
+          <td><strong>Distance-Weighted kNN</strong></td>
+          <td>Instance-based</td>
+          <td>k=15, Euclidean, 1/d weights, index=25k</td>
+          <td class="num">0.8803 &plusmn; 0.0137</td>
+          <td class="num">0.8384</td>
+          <td class="num">0.9090</td>
+          <td class="num">0.8984</td>
+          <td class="num">0.1688</td>
+          <td class="num">8.6472s</td>
+        </tr>
+        <tr>
+          <td><strong>Random Forest</strong></td>
+          <td>Ensemble (Bagging)</td>
+          <td>n_estimators=15, max_depth=8, max_features=4</td>
+          <td class="num">0.8818 &plusmn; 0.0180</td>
+          <td class="num">0.8397</td>
+          <td class="num">0.9177</td>
+          <td class="num">0.9020</td>
+          <td class="num">0.1115</td>
+          <td class="num">0.1661s</td>
+        </tr>
+        <tr>
+          <td><strong>Gradient Boosted Trees</strong></td>
+          <td>Boosting</td>
+          <td>n_estimators=35, lr=0.1, max_depth=4, subsample=0.6</td>
+          <td class="num">0.8675 &plusmn; 0.0257</td>
+          <td class="num">0.8432</td>
+          <td class="num">0.9121</td>
+          <td class="num">0.8969</td>
+          <td class="num">0.1748</td>
+          <td class="num">0.1678s</td>
+        </tr>
+        <tr>
+          <td><strong>Shallow MLP (Neural Net)</strong></td>
+          <td>Neural networks</td>
+          <td>hidden=64 ReLU, Adam lr=1e-3, epochs=12, wd=1e-4</td>
+          <td class="num">0.8909 &plusmn; 0.0165</td>
+          <td class="num">0.8502</td>
+          <td class="num">0.9203</td>
+          <td class="num">0.9103</td>
+          <td class="num">0.1027</td>
+          <td class="num">0.0954s</td>
+        </tr>
+    </tbody>
+  </table>
+
+  <h3>3.2 Individual Model Analysis</h3>
+  
+        <h3>3.2.1 Logistic Regression</h3>
+        <ul>
+          <li><strong>Suitability &amp; Trade-offs:</strong> Serves as a fast, convex linear baseline that outputs well-calibrated probabilities directly usable as HMM emissions. Strengths: rapid inference (0.0088s) and zero overfitting (Train F1 0.8758 vs. Test F1 0.8946). Limitations: cannot model nonlinear interactions between perpendicular distance, heading alignment, and local continuity.</li>
+          <li><strong>Configuration &amp; Objective:</strong> L2 penalty C=1.0, L-BFGS-B solver, max_iter=60, standardized 16 features. Loss: L2-regularized binary cross-entropy loss.</li>
+          <li><strong>Experimental Results &amp; Generalisation:</strong> Test Macro-F1: 0.8946, Top-1 Accuracy: 0.8462, Route Continuity: 0.9167, Log Loss: 0.1357. No overfitting observed; linear decision boundary slightly underfits complex urban intersections compared to MLP.</li>
+        </ul>
+        <h3>3.2.2 Gaussian Naive Bayes</h3>
+        <ul>
+          <li><strong>Suitability &amp; Trade-offs:</strong> Provides a lightweight generative probabilistic baseline assuming conditional feature independence given candidate correctness. Strengths: sub-second training (0.815s) and simple closed-form likelihoods. Limitations: strong independence assumption is violated by correlated distance/kinematic features, inflating probability confidence.</li>
+          <li><strong>Configuration &amp; Objective:</strong> var_smoothing=1e-6 on standardized features. Loss: Maximum likelihood estimation of class-conditional Gaussian means and variances.</li>
+          <li><strong>Experimental Results &amp; Generalisation:</strong> Test Macro-F1: 0.6049, Top-1 Accuracy: 0.8359, Route Continuity: 0.9127, Log Loss: 2.2160. Severe probability miscalibration (Log Loss 2.2160) due to correlated features; unsuitable as an HMM emission model despite decent Top-1 ranking.</li>
+        </ul>
+        <h3>3.2.3 Distance-Weighted k-Nearest Neighbors (kNN)</h3>
+        <ul>
+          <li><strong>Suitability &amp; Trade-offs:</strong> Non-parametric instance-based learner capable of capturing arbitrary local decision boundaries in normalized feature space. Strengths: zero training cost (0.013s) and strong Test Macro-F1 (0.8984). Limitations: slow inference (8.6472s for 153k candidates via KD-tree) makes real-time multi-trip API serving impractical.</li>
+          <li><strong>Configuration &amp; Objective:</strong> k=15 neighbors, Euclidean metric, inverse-distance weights 1/(d+1e-4), 25,000 indexed training points. Loss: Non-parametric local majority/distance-weighted voting (no iterative loss optimisation).</li>
+          <li><strong>Experimental Results &amp; Generalisation:</strong> Test Macro-F1: 0.8984, Top-1 Accuracy: 0.8384, Route Continuity: 0.9090, Log Loss: 0.1688. Mildly higher Log Loss than MLP due to finite-k probability quantization; inference latency is ~90x slower than MLP.</li>
+        </ul>
+        <h3>3.2.4 Random Forest Classifier</h3>
+        <ul>
+          <li><strong>Suitability &amp; Trade-offs:</strong> Bagged ensemble of binned CART trees that captures nonlinear feature thresholds and interactions without feature scaling. Strengths: fast training (1.61s), scale-invariant, and strong Test Macro-F1 (0.9020). Limitations: tree-averaged probabilities (Log Loss 0.1115) are slightly less sharp than MLP at intersections.</li>
+          <li><strong>Configuration &amp; Objective:</strong> n_estimators=15, max_depth=8, min_samples_leaf=25, max_features=4, 60k bootstrap subsample. Loss: Gini impurity minimization per split across bootstrap-resampled trees.</li>
+          <li><strong>Experimental Results &amp; Generalisation:</strong> Test Macro-F1: 0.9020, Top-1 Accuracy: 0.8397, Route Continuity: 0.9177, Log Loss: 0.1115. Well-regularized by depth cap and leaf minimum; generalizes cleanly from CV (0.8818) to Student-Test (0.9020).</li>
+        </ul>
+        <h3>3.2.5 Gradient Boosted Trees (GBM)</h3>
+        <ul>
+          <li><strong>Suitability &amp; Trade-offs:</strong> Sequential additive tree ensemble correcting residual log-odds errors on hard candidate pairs near parallel streets. Strengths: strong nonlinear expressiveness and fast inference (0.1678s). Limitations: with 35 shallow trees on an 80k subsample, slightly higher Log Loss (0.1748) and CV variance (+/-0.0257) than Random Forest or MLP.</li>
+          <li><strong>Configuration &amp; Objective:</strong> n_estimators=35, learning_rate=0.1, max_depth=4, min_samples_leaf=30, subsample=0.6. Loss: Sequential negative-gradient (binary cross-entropy residual) minimization.</li>
+          <li><strong>Experimental Results &amp; Generalisation:</strong> Test Macro-F1: 0.8969, Top-1 Accuracy: 0.8432, Route Continuity: 0.9121, Log Loss: 0.1748. No severe overfitting, though probability calibration lags behind MLP.</li>
+        </ul>
+        <h3>3.2.6 Shallow MLP (Neural Network)</h3>
+        <ul>
+          <li><strong>Suitability &amp; Trade-offs:</strong> Learns smooth, continuous nonlinear combinations of spatial distance, heading alignment, and local temporal continuity. Strengths: highest CV Macro-F1 (0.8909), highest Test Macro-F1 (0.9103), highest Top-1 Accuracy (0.8502), lowest Log Loss (0.1027), and fast inference (0.0954s). Limitations: requires feature standardization and ~22s training.</li>
+          <li><strong>Configuration &amp; Objective:</strong> 1 hidden layer (64 ReLU units), Adam lr=1e-3, batch_size=8192, epochs=12, weight_decay=1e-4. Loss: L2-regularized binary cross-entropy optimized with Adam.</li>
+          <li><strong>Experimental Results &amp; Generalisation:</strong> Test Macro-F1: 0.9103, Top-1 Accuracy: 0.8502, Route Continuity: 0.9203, Log Loss: 0.1027. Epoch-wise train and validation loss curves decrease smoothly together with zero divergence, confirming strong generalization.</li>
+        </ul>
+
+  <h3>3.3 Model Visualisations</h3>
+  <figure>
+    <img src="../figures/model_comparison.png" alt="Model Comparison">
+    <figcaption>Figure 2: 5-Fold Group-CV Macro F1, Student-Test Top-1 Accuracy, Log Loss, and Inference Time across all six models.</figcaption>
+  </figure>
+  <figure>
+    <img src="../figures/confusion_matrices.png" alt="Confusion Matrices">
+    <figcaption>Figure 3: Student-Test confusion matrices across all six models.</figcaption>
+  </figure>
+
+  <h2>4. Bayesian Hyperparameter Optimisation</h2>
+  <p>
+    We selected the <strong>Shallow MLP</strong> for Bayesian Optimisation using a Gaussian Process surrogate with Expected Improvement (GP-EI) over 10 trials.
+  </p>
+  <table>
+    <thead>
+      <tr>
+        <th class="num">Trial</th>
+        <th>Phase</th>
+        <th class="num">Hidden Dim</th>
+        <th class="num">Learning Rate</th>
+        <th class="num">Weight Decay</th>
+        <th class="num">Epochs</th>
+        <th class="num">CV Macro F1</th>
+      </tr>
+    </thead>
+    <tbody>
+      
+        <tr>
+          <td class="num">1</td>
+          <td>random_init</td>
+          <td class="num">33</td>
+          <td class="num">0.002522</td>
+          <td class="num">0.0003123</td>
+          <td class="num">13</td>
+          <td class="num"><strong>0.8473</strong></td>
+        </tr>
+        <tr>
+          <td class="num">2</td>
+          <td>random_init</td>
+          <td class="num">107</td>
+          <td class="num">0.000876</td>
+          <td class="num">0.0001608</td>
+          <td class="num">9</td>
+          <td class="num"><strong>0.7112</strong></td>
+        </tr>
+        <tr>
+          <td class="num">3</td>
+          <td>random_init</td>
+          <td class="num">43</td>
+          <td class="num">0.001721</td>
+          <td class="num">0.0000819</td>
+          <td class="num">12</td>
+          <td class="num"><strong>0.8022</strong></td>
+        </tr>
+        <tr>
+          <td class="num">4</td>
+          <td>random_init</td>
+          <td class="num">105</td>
+          <td class="num">0.001544</td>
+          <td class="num">0.0001448</td>
+          <td class="num">12</td>
+          <td class="num"><strong>0.8466</strong></td>
+        </tr>
+        <tr>
+          <td class="num">5</td>
+          <td>gp_ei</td>
+          <td class="num">72</td>
+          <td class="num">0.000382</td>
+          <td class="num">0.0022935</td>
+          <td class="num">15</td>
+          <td class="num"><strong>0.6882</strong></td>
+        </tr>
+        <tr>
+          <td class="num">6</td>
+          <td>gp_ei</td>
+          <td class="num">118</td>
+          <td class="num">0.004611</td>
+          <td class="num">0.0000045</td>
+          <td class="num">14</td>
+          <td class="num"><strong>0.8834</strong></td>
+        </tr>
+        <tr>
+          <td class="num">7</td>
+          <td>gp_ei</td>
+          <td class="num">124</td>
+          <td class="num">0.000435</td>
+          <td class="num">0.0000034</td>
+          <td class="num">14</td>
+          <td class="num"><strong>0.6351</strong></td>
+        </tr>
+        <tr>
+          <td class="num">8</td>
+          <td>gp_ei</td>
+          <td class="num">123</td>
+          <td class="num">0.004482</td>
+          <td class="num">0.0014971</td>
+          <td class="num">15</td>
+          <td class="num"><strong>0.8835</strong></td>
+        </tr>
+        <tr>
+          <td class="num">9</td>
+          <td>gp_ei</td>
+          <td class="num">35</td>
+          <td class="num">0.004714</td>
+          <td class="num">0.0025145</td>
+          <td class="num">8</td>
+          <td class="num"><strong>0.8391</strong></td>
+        </tr>
+        <tr>
+          <td class="num">10</td>
+          <td>gp_ei</td>
+          <td class="num">124</td>
+          <td class="num">0.004903</td>
+          <td class="num">0.0000042</td>
+          <td class="num">9</td>
+          <td class="num"><strong>0.8721</strong></td>
+        </tr>
+    </tbody>
+  </table>
+  <figure>
+    <img src="../figures/mlp_and_bo.png" alt="MLP Loss and BO Convergence">
+    <figcaption>Figure 4: Epoch-wise MLP training/validation loss curves and GP-EI Bayesian Optimisation convergence.</figcaption>
+  </figure>
+
+  <h2>5. HMM and Viterbi Route Reconstruction</h2>
+  <p>
+    To enforce road-network connectivity, we implemented a log-space Viterbi decoder over the per-observation candidate arcs (hidden states).
+  </p>
+  <div class="callout">
+    <strong>HMM + Viterbi Impact on Student-Test (10 Trips):</strong>
+    Mean Observation Top-1 Accuracy reached <strong>89.50%</strong>, Route Continuity rose to <strong>97.02%</strong>, and Sequence Arc F1 jumped to <strong>88.62%</strong>.
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>Trip ID</th>
+        <th class="num">GPS Pts</th>
+        <th class="num">Clf Top-1</th>
+        <th class="num">HMM Top-1</th>
+        <th class="num">Clf Cont.</th>
+        <th class="num">HMM Cont.</th>
+        <th class="num">Clf Arc F1</th>
+        <th class="num">HMM Arc F1</th>
+      </tr>
+    </thead>
+    <tbody>
+      
+        <tr>
+          <td>00000000</td>
+          <td class="num">2503</td>
+          <td class="num">0.9357</td>
+          <td class="num"><strong>0.9477</strong></td>
+          <td class="num">0.9620</td>
+          <td class="num"><strong>0.9880</strong></td>
+          <td class="num">0.8329</td>
+          <td class="num"><strong>0.8848</strong></td>
+        </tr>
+        <tr>
+          <td>00000007</td>
+          <td class="num">1354</td>
+          <td class="num">0.9350</td>
+          <td class="num"><strong>0.9394</strong></td>
+          <td class="num">0.9919</td>
+          <td class="num"><strong>0.9985</strong></td>
+          <td class="num">0.9528</td>
+          <td class="num"><strong>0.9758</strong></td>
+        </tr>
+        <tr>
+          <td>00000009</td>
+          <td class="num">1049</td>
+          <td class="num">0.8475</td>
+          <td class="num"><strong>0.8751</strong></td>
+          <td class="num">0.8674</td>
+          <td class="num"><strong>0.9389</strong></td>
+          <td class="num">0.8215</td>
+          <td class="num"><strong>0.8709</strong></td>
+        </tr>
+        <tr>
+          <td>00000040</td>
+          <td class="num">2995</td>
+          <td class="num">0.9212</td>
+          <td class="num"><strong>0.9379</strong></td>
+          <td class="num">0.9593</td>
+          <td class="num"><strong>0.9873</strong></td>
+          <td class="num">0.8737</td>
+          <td class="num"><strong>0.9331</strong></td>
+        </tr>
+        <tr>
+          <td>00000052</td>
+          <td class="num">262</td>
+          <td class="num">0.9504</td>
+          <td class="num"><strong>0.9771</strong></td>
+          <td class="num">0.9387</td>
+          <td class="num"><strong>0.9579</strong></td>
+          <td class="num">0.8415</td>
+          <td class="num"><strong>0.8864</strong></td>
+        </tr>
+        <tr>
+          <td>00000056</td>
+          <td class="num">3958</td>
+          <td class="num">0.8734</td>
+          <td class="num"><strong>0.9282</strong></td>
+          <td class="num">0.8802</td>
+          <td class="num"><strong>0.9616</strong></td>
+          <td class="num">0.8815</td>
+          <td class="num"><strong>0.9352</strong></td>
+        </tr>
+        <tr>
+          <td>00000065</td>
+          <td class="num">768</td>
+          <td class="num">0.8385</td>
+          <td class="num"><strong>0.8724</strong></td>
+          <td class="num">0.9035</td>
+          <td class="num"><strong>0.9726</strong></td>
+          <td class="num">0.7896</td>
+          <td class="num"><strong>0.9017</strong></td>
+        </tr>
+        <tr>
+          <td>00000076</td>
+          <td class="num">1486</td>
+          <td class="num">0.8338</td>
+          <td class="num"><strong>0.8735</strong></td>
+          <td class="num">0.8667</td>
+          <td class="num"><strong>0.9522</strong></td>
+          <td class="num">0.7363</td>
+          <td class="num"><strong>0.8116</strong></td>
+        </tr>
+        <tr>
+          <td>00000077</td>
+          <td class="num">3911</td>
+          <td class="num">0.6850</td>
+          <td class="num"><strong>0.7042</strong></td>
+          <td class="num">0.9176</td>
+          <td class="num"><strong>0.9783</strong></td>
+          <td class="num">0.7593</td>
+          <td class="num"><strong>0.8094</strong></td>
+        </tr>
+        <tr>
+          <td>00000091</td>
+          <td class="num">874</td>
+          <td class="num">0.8421</td>
+          <td class="num"><strong>0.8947</strong></td>
+          <td class="num">0.8763</td>
+          <td class="num"><strong>0.9668</strong></td>
+          <td class="num">0.7957</td>
+          <td class="num"><strong>0.8526</strong></td>
+        </tr>
+    </tbody>
+  </table>
+  <figure>
+    <img src="../figures/hmm_comparison.png" alt="HMM vs Classifier Comparison">
+    <figcaption>Figure 5: Per-trip comparison of Classifier-Only vs. Classifier + HMM/Viterbi across all 10 student-testing trips.</figcaption>
+  </figure>
+
+  <h2>6. Geographical Visualisation Using Folium</h2>
+  <p>
+    We generated interactive Folium-based HTML maps (<code>maps/trip_00000056_map.html</code> and <code>maps/trip_00000007_map.html</code>) with layer controls, legends, and distinguishable layers for raw GPS observations (blue), local road network (gray), reference route (green), and HMM predicted route (red dashed).
+  </p>
+  <figure>
+    <img src="../figures/geo_map_trip_00000056.png" alt="Geographical Map Trip 00000056">
+    <figcaption>Figure 6: Geographical route reconstruction on Student-Test Trip 00000056.</figcaption>
+  </figure>
+
+  <h2>7. API, UI and Two-Laptop Deployment</h2>
+  <p>
+    The production system is split across two laptops: <strong>Laptop 1</strong> runs the FastAPI backend (<code>src/api/main.py</code> via <code>uvicorn</code>), exposing <code>GET /health</code>, <code>GET /api/trips</code>, and <code>POST /api/match/{trip_id}</code>. <strong>Laptop 2</strong> serves the evaluator-facing web UI (<code>src/ui/index.html</code>), which renders the interactive Leaflet route map and live metrics.
+  </p>
+</main>
+</body>
+</html>

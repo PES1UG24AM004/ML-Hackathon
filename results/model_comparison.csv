@@ -1,0 +1,7 @@
+model,family,key_config,cv_macro_f1_mean,cv_macro_f1_std,cv_top1_mean,train_macro_f1,test_accuracy,test_precision,test_recall,test_f1_pos,test_macro_f1,test_log_loss,test_top1_acc,test_route_continuity,train_time_s,inference_time_s
+Logistic Regression,Linear and probabilistic,"L2 C=1.0, L-BFGS-B, max_iter=60",0.8715,0.0152,0.7646,0.7812,0.9555,0.8454,0.7858,0.8145,0.8946,0.1357,0.8462,0.9167,8.912,0.0088
+Gaussian Naive Bayes,Linear and probabilistic,var_smoothing=1e-6,0.6093,0.0563,0.7594,0.5529,0.6789,0.2779,0.9887,0.4339,0.6049,2.216,0.8359,0.9127,0.815,0.047
+Distance-Weighted kNN,Instance-based,"k=15, Euclidean, 1/d weights, index=25k",0.8803,0.0137,0.7586,0.7971,0.9569,0.8486,0.7956,0.8213,0.8984,0.1688,0.8384,0.909,0.013,8.6472
+Random Forest,Ensemble (Bagging),"n_estimators=15, max_depth=8, max_features=4",0.8818,0.018,0.7701,0.7954,0.9584,0.8556,0.8012,0.8275,0.902,0.1115,0.8397,0.9177,1.61,0.1661
+Gradient Boosted Trees,Boosting,"n_estimators=35, lr=0.1, max_depth=4, subsample=0.6",0.8675,0.0257,0.7671,0.7843,0.9568,0.8581,0.7821,0.8184,0.8969,0.1748,0.8432,0.9121,4.543,0.1678
+Shallow MLP (Neural Net),Neural networks,"hidden=64 ReLU, Adam lr=1e-3, epochs=12, wd=1e-4",0.8909,0.0165,0.7722,0.8053,0.962,0.8724,0.8141,0.8422,0.9103,0.1027,0.8502,0.9203,22.189,0.0954
