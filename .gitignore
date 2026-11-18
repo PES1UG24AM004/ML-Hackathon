@@ -24,3 +24,10 @@ Thumbs.db
 .idea/
 .vscode/
 *.swp
+*.tmp
+*.bak
+
+# Environment and secrets
+.env
+.env.*
+*.log

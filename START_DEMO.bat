@@ -2,7 +2,7 @@
 setlocal
 cd /d "%~dp0"
 echo =============================================
-echo   PathSnap - SRNs first-round demo launcher
+echo   PathSnap - Map-Matching Demo Launcher
 echo =============================================
 set "PYTHON_CMD=python"
 python -c "import numpy,scipy,matplotlib,folium,fastapi,uvicorn" >nul 2>&1

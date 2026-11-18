@@ -20,7 +20,7 @@ OFFLINE_MAP_ROOT.mkdir(parents=True, exist_ok=True)
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(name)s | %(message)s")
 logger = logging.getLogger("pathsnap.api")
-app = FastAPI(title="PathSnap SRNs Demo API", version="0.1.0")
+app = FastAPI(title="PathSnap Map-Matching API", version="0.1.0")
 app.mount("/maps", StaticFiles(directory=str(MAP_ROOT)), name="maps")
 app.mount("/offline-maps", StaticFiles(directory=str(OFFLINE_MAP_ROOT)), name="offline-maps")
 
@@ -35,7 +35,7 @@ main{max-width:1160px;margin:24px auto;padding:0 18px}.panel{background:#fff;bor
 .controls{display:flex;gap:12px;align-items:end;flex-wrap:wrap}label{display:block;color:var(--muted);font-weight:650;font-size:13px;margin-bottom:6px}select,button{height:42px;border:1px solid var(--line);border-radius:9px;padding:0 13px;font:inherit}select{min-width:220px;background:white}button{background:var(--blue);color:white;border:0;font-weight:700;cursor:pointer}button:disabled{opacity:.55;cursor:wait}.metrics{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}.metric{border:1px solid var(--line);padding:13px;border-radius:10px}.metric span{display:block;color:var(--muted);font-size:12px}.metric b{font-size:21px}.status{color:var(--muted);margin-left:5px}iframe{width:100%;height:590px;border:1px solid var(--line);border-radius:10px;background:white}.foot{font-size:13px;color:var(--muted)}
 @media(max-width:800px){.metrics{grid-template-columns:repeat(2,1fr)}iframe{height:460px}}
 </style></head><body>
-<header><small>UE24CS352A · Machine Learning Hackathon</small><h1>PathSnap — Distributed Map-Matching & Route Reconstruction</h1><p>SRNs · PES1UG24AM004 / 005 / 006 / 007 · First-round baseline demo</p></header>
+<header><small>UE24CS352A · Machine Learning</small><h1>PathSnap — Distributed Map-Matching & Route Reconstruction</h1><p>PES1UG24AM004 · PES1UG24AM005 · PES1UG24AM006 · PES1UG24AM007</p></header>
 <main>
 <section class="panel"><div class="controls"><div><label for="trip">Choose a student-testing trip</label><select id="trip"><option>Loading trips…</option></select></div><button id="run">Run nearest-road baseline</button><span id="status" class="status">Ready</span></div></section>
 <section class="panel"><div class="metrics" id="metrics">
