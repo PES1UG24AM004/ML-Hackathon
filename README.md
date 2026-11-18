@@ -1,5 +1,14 @@
 # PathSnap: Distributed Map-Matching & Route Reconstruction
 
+## Contributors
+
+| Team Member | Responsibility |
+|---|---|
+| PES1UG24AM004 | Experimentation, evaluation and optimisation |
+| PES1UG24AM005 | Data processing and EDA |
+| PES1UG24AM006 | Feature engineering, ML models and HMM |
+| PES1UG24AM007 | API, UI and visualisation |
+
 ## 1. Project Description
 
 **PathSnap** is a machine learning and geospatial processing system designed to match noisy GPS trajectory sequences to a directed road network. Developed for course **UE24CS352A (Machine Learning)**, the project addresses the spatial misalignment inherent in real-world location tracking by projecting raw GPS observations onto road segments and reconstructing plausible topological routes.
