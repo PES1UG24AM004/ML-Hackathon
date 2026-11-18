@@ -1,6 +1,10 @@
-numpy>=1.26
-scipy>=1.11
-matplotlib>=3.8
-folium>=0.16
-fastapi>=0.110
-uvicorn[standard]>=0.27
+numpy>=1.24.0
+pandas>=2.0.0
+scipy>=1.11.0
+pyproj>=3.6.0
+matplotlib>=3.7.0
+folium>=0.14.0
+reportlab>=4.0.0
+fastapi>=0.92.0
+uvicorn>=0.17.6
+httpx>=0.24.0
