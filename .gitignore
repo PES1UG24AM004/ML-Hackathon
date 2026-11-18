@@ -1,33 +1,70 @@
-# Virtual environments
-.venv/
-venv/
-env/
-
-# Python byte-code and cache
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
-*.pyo
-*.pyd
 
-# Datasets (large archives and extracted raw directories)
-data/Student folder/
-data/Student folder.zip
+# C extensions
+*.so
 
-# Runtime-generated Folium maps (re-generated on demand by API/script)
-outputs/maps/*.html
-!outputs/maps/.gitkeep
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
 
-# IDE and OS files
-.DS_Store
-Thumbs.db
+# Virtual Environments
+.venv/
+venv/
+ENV/
+env/
+env.bak/
+venv.bak/
+
+# Environment Variables and Secrets
+.env
+.env.*
+*.env
+
+# IDE and Editor Cache
 .idea/
 .vscode/
 *.swp
-*.tmp
-*.bak
+*.swo
+*~
+.DS_Store
+Thumbs.db
 
-# Environment and secrets
-.env
-.env.*
+# Jupyter Notebook Checkpoints
+.ipynb_checkpoints/
+
+# Raw Datasets and Intermediate Large Binaries
+# (See data/README.md for dataset setup instructions)
+data/Student folder/
+data/train_candidates.npz
+data/test_candidates.npz
+data/*.parquet
+data/*.csv
+data/network/
+data/trips/
+
+# Temporary / Log files
 *.log
+*.tmp
+
+# Evaluator Dataset (Strict Isolation) & Evaluator Outputs
+evaluator_data/
+evaluator_outputs/
+private_labels/
+*.route
