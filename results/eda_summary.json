@@ -1,0 +1,60 @@
+{
+  "train": {
+    "num_trips": 80,
+    "total_gps_obs": 208417,
+    "gps_obs_min": 361,
+    "gps_obs_max": 19313,
+    "gps_obs_mean": 2605.21,
+    "total_nan": 0,
+    "non_monotonic_ts_total": 0,
+    "pct_1hz_steps": 96.5,
+    "trips_with_gaps_gt_5s": 45,
+    "max_gap_s_overall": 153064.0,
+    "lon_range": [
+      -100.41854,
+      137.23703
+    ],
+    "lat_range": [
+      -34.64029,
+      61.26726
+    ],
+    "nodes_mean": 24168.6,
+    "arcs_mean": 48461.3,
+    "isolated_nodes_total": 0,
+    "self_loops_total": 22,
+    "route_arcs_mean": 391.7,
+    "route_discontinuities_total": 13,
+    "mean_gps_to_route_m": 9.65,
+    "p95_gps_to_route_m": 24.41,
+    "max_gps_to_route_m": 647.26
+  },
+  "student_test": {
+    "num_trips": 10,
+    "total_gps_obs": 19160,
+    "gps_obs_min": 262,
+    "gps_obs_max": 3958,
+    "gps_obs_mean": 1916.0,
+    "total_nan": 0,
+    "non_monotonic_ts_total": 0,
+    "pct_1hz_steps": 98.62,
+    "trips_with_gaps_gt_5s": 2,
+    "max_gap_s_overall": 210.0,
+    "lon_range": [
+      -93.42434,
+      77.27111
+    ],
+    "lat_range": [
+      42.64553,
+      61.69959
+    ],
+    "nodes_mean": 9068.9,
+    "arcs_mean": 18504.1,
+    "isolated_nodes_total": 0,
+    "self_loops_total": 2,
+    "route_arcs_mean": 347.7,
+    "route_discontinuities_total": 1,
+    "mean_gps_to_route_m": 6.38,
+    "p95_gps_to_route_m": 16.46,
+    "max_gps_to_route_m": 158.28
+  }
+}
