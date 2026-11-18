@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>PathSnap — Distributed Map-Matching &amp; Route Reconstruction</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <!-- Local Offline Leaflet.js Mapping Engine (100% Offline / Zero CDN Dependencies) -->
+  <link rel="stylesheet" href="/static/vendor/leaflet.css"/>
+  <script src="/static/vendor/leaflet.js"></script>
+  <!-- Minimal Map-First Workstation Stylesheet -->
+  <link rel="stylesheet" href="/static/style.css"/>
+</head>
+<body>
+
+  <div id="app-container">
+
+    <!-- ====================================================================
+         1. COMPACT TOP NAVIGATION BAR (44px)
+         ==================================================================== -->
+    <header id="top-bar">
+      <!-- Brand & Project Title -->
+      <div class="top-brand" onclick="location.reload()" title="PathSnap Workstation">
+        <svg class="brand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="3 11 22 2 13 21 11 13 3 11"/>
+        </svg>
+        <div>
+          <span class="brand-title">PathSnap</span>
+          <span class="brand-subtitle">&middot; Map-Matching Workstation</span>
+        </div>
+      </div>
+
+      <!-- Center Controls: Dataset & Trip Selectors + Run Action -->
+      <div class="top-controls">
+        <div class="control-group">
+          <span class="control-label">Dataset:</span>
+          <select id="dataset-select" class="select-input">
+            <option value="student_test">Student Test (10 trips)</option>
+            <option value="evaluator_test">Evaluator Test (10 trips)</option>
+            <option value="train">Training (80 trips)</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <span class="control-label">Trip:</span>
+          <select id="trip-select" class="select-input">
+            <option value="00000052">Trip 00000052</option>
+          </select>
+        </div>
+
+        <button id="btn-run-matching" class="btn btn-primary" title="Execute MLP Classification and HMM Viterbi Decoding">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+          </svg>
+          <span>Run Map Matching</span>
+        </button>
+
+        <button id="btn-fit-map" class="btn" title="Fit Map Bounds to Selected Trip (Cmd/Ctrl+F)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="15 3 21 3 21 9"/>
+            <polyline points="9 21 3 21 3 15"/>
+            <line x1="21" y1="3" x2="14" y2="10"/>
+            <line x1="3" y1="21" x2="10" y2="14"/>
+          </svg>
+          <span>Fit Trip</span>
+        </button>
+      </div>
+
+      <!-- Right Controls: Settings / Evaluator Drawer -->
+      <div class="top-controls">
+        <button id="btn-toggle-drawer" class="btn" title="View Model Config &amp; Evaluator Scoring Summary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+          <span>Details</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- ====================================================================
+         2. MAIN WORKSPACE: SIDE PANEL (~220px) + DOMINANT MAP (~80-85%)
+         ==================================================================== -->
+    <main id="workspace">
+
+      <!-- Left Compact Control Panel (220px) -->
+      <aside id="side-panel">
+        <!-- Section: Trip Overview -->
+        <div class="panel-section">
+          <div class="section-title">Trip Information</div>
+          <div class="info-row">
+            <span class="info-label">Trip ID</span>
+            <span class="info-val" id="info-trip-id">00000052</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Partition</span>
+            <span class="info-val" id="info-dataset">student_test</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">GPS Fixes</span>
+            <span class="info-val" id="info-gps-count">—</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Road Arcs</span>
+            <span class="info-val" id="info-arcs-count">—</span>
+          </div>
+        </div>
+
+        <!-- Section: Layer Visibility Controls -->
+        <div class="panel-section">
+          <div class="section-title">Map Layers</div>
+          <label class="layer-item">
+            <input type="checkbox" id="chk-layer-pred" checked/>
+            <span class="layer-legend" style="background-color: var(--color-pred); height: 3px;"></span>
+            <span>Predicted Route</span>
+          </label>
+          <label class="layer-item">
+            <input type="checkbox" id="chk-layer-gps" checked/>
+            <span class="layer-dot" style="background-color: var(--color-gps);"></span>
+            <span>GPS Observations</span>
+          </label>
+          <label class="layer-item">
+            <input type="checkbox" id="chk-layer-network" checked/>
+            <span class="layer-legend" style="background-color: var(--color-road); height: 1.5px;"></span>
+            <span>Road Network</span>
+          </label>
+        </div>
+
+        <!-- Section: Inference Status -->
+        <div class="panel-section">
+          <div class="section-title">Inference Status</div>
+          <div id="status-pill" class="status-pill ready">
+            <span id="status-pill-text">System Ready</span>
+          </div>
+          <div class="info-row" style="margin-top: 8px;">
+            <span class="info-label">Duration</span>
+            <span class="info-val" id="metric-val-latency">—</span>
+          </div>
+        </div>
+
+        <!-- Section: Performance Metrics -->
+        <div class="panel-section">
+          <div class="section-title">Evaluation Metrics</div>
+          <div class="metrics-grid">
+            <div class="metric-tile">
+              <div class="tile-label">Top-1 Acc</div>
+              <div class="tile-val" id="metric-val-top1" style="color: var(--color-gps);">—</div>
+            </div>
+            <div class="metric-tile">
+              <div class="tile-label">Continuity</div>
+              <div class="tile-val" id="metric-val-cont" style="color: var(--color-success);">—</div>
+            </div>
+            <div class="metric-tile">
+              <div class="tile-label">Arc F1</div>
+              <div class="tile-val" id="metric-val-f1">—</div>
+            </div>
+            <div class="metric-tile">
+              <div class="tile-label">Decoder</div>
+              <div class="tile-val" style="font-size: 11px; padding-top: 2px;">Viterbi</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section: Export & External Map Access -->
+        <div class="panel-section" style="border-bottom: none; margin-top: auto;">
+          <button class="btn" style="width: 100%; justify-content: center; margin-bottom: 6px;" onclick="window.open('/offline-maps/' + (document.getElementById('trip-select').value || '00000052') + '.html', '_blank')">
+            <span>Offline Vector Map</span>
+          </button>
+        </div>
+      </aside>
+
+      <!-- Main Map (Dominant Element: ~80-85% of Workspace) -->
+      <section id="main-map-container">
+        <!-- Interactive Leaflet Canvas -->
+        <div id="map"></div>
+
+        <!-- Floating Map Action Controls (Top Right) -->
+        <div class="map-floating-controls">
+          <button id="map-btn-zoom-in" class="map-control-btn" title="Zoom In (+)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+          </button>
+          <button id="map-btn-zoom-out" class="map-control-btn" title="Zoom Out (-)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+          </button>
+          <button id="map-btn-fit" class="map-control-btn" title="Fit Trip Extent (Ctrl+F)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="15 3 21 3 21 9"></polyline>
+              <polyline points="9 21 3 21 3 15"></polyline>
+              <line x1="21" y1="3" x2="14" y2="10"></line>
+              <line x1="3" y1="21" x2="10" y2="14"></line>
+            </svg>
+          </button>
+          <button id="map-btn-reset" class="map-control-btn" title="Reset View">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+              <polyline points="3 3 3 8 8 8"></polyline>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Floating Map Legend (Bottom Right) -->
+        <div class="map-floating-legend">
+          <div class="legend-item">
+            <span class="layer-legend" style="background-color: #94a3b8; width: 15px; height: 1.5px;"></span>
+            <span>Road Network</span>
+          </div>
+          <div class="legend-item">
+            <span class="layer-dot" style="background-color: var(--color-gps);"></span>
+            <span>GPS Fixes</span>
+          </div>
+          <div class="legend-item">
+            <span class="layer-legend" style="background-color: var(--color-pred); width: 16px; height: 3.5px;"></span>
+            <span>Predicted Snapped Route</span>
+          </div>
+          <div class="legend-item">
+            <span class="layer-dot" style="background-color: #22c55e; border: 1.5px solid #15803d; width: 7px; height: 7px;"></span>
+            <span>Route Start</span>
+          </div>
+          <div class="legend-item">
+            <span class="layer-dot" style="background-color: #ef4444; border: 1.5px solid #991b1b; width: 7px; height: 7px;"></span>
+            <span>Route End</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide-Over Details & Evaluator Scoring Drawer -->
+      <aside id="details-drawer">
+        <div class="drawer-header">
+          <span class="drawer-title">Details &amp; Evaluator Scoring</span>
+          <button id="btn-close-drawer" class="btn" style="height: 26px; padding: 0 8px;">✕</button>
+        </div>
+
+        <div class="drawer-body">
+          <!-- Evaluator Holdout Summary (from score_evaluator_predictions.py) -->
+          <div class="drawer-section">
+            <div class="drawer-section-title">Evaluator Holdout Benchmark</div>
+            <div id="eval-summary-box">
+              <div style="font-size: 11.5px; color: var(--text-muted);">
+                Run <code>RUN_EVALUATOR_SCORING.bat</code> to compile offline evaluator scores.
+              </div>
+            </div>
+          </div>
+
+          <!-- Model Hyperparameters -->
+          <div class="drawer-section">
+            <div class="drawer-section-title">Active Model Architecture</div>
+            <table class="table-mini">
+              <tr><td>Classifier Model</td><td>Shallow MLP (PyTorch / NumPy)</td></tr>
+              <tr><td>Hidden Dimension</td><td>123 Units (ReLU)</td></tr>
+              <tr><td>Learning Rate</td><td>0.00448 (Adam)</td></tr>
+              <tr><td>Weight Decay</td><td>0.0015 ($L_2$)</td></tr>
+              <tr><td>Epochs</td><td>15</td></tr>
+            </table>
+          </div>
+
+          <!-- HMM Penalties -->
+          <div class="drawer-section">
+            <div class="drawer-section-title">HMM Viterbi Configuration</div>
+            <table class="table-mini">
+              <tr><td>Emission Weight</td><td>1.0</td></tr>
+              <tr><td>1-Hop Transition</td><td>0.25 (Valid direct link)</td></tr>
+              <tr><td>2-Hop Transition</td><td>1.20 (Micro-segment bridge)</td></tr>
+              <tr><td>Disconnected Penalty</td><td>5.50 (Spatial teleport)</td></tr>
+            </table>
+          </div>
+
+          <!-- Raw Telemetry JSON -->
+          <div class="drawer-section">
+            <div class="drawer-section-title">Prediction Diagnostics (JSON)</div>
+            <div class="code-box" id="drawer-raw-json">
+Select a trip and run matching to view raw telemetry.
+            </div>
+          </div>
+
+          <!-- Attribution -->
+          <div class="drawer-section" style="border-top: 1px solid var(--border); padding-top: 12px; font-size: 11px; color: var(--text-muted);">
+            <strong>UE24CS352A — Machine Learning</strong><br>
+            PES University | PES1UG24AM004, 005, 006, 007
+          </div>
+        </div>
+      </aside>
+
+    </main>
+
+    <!-- ====================================================================
+         3. COMPACT BOTTOM STATUS BAR (26px)
+         ==================================================================== -->
+    <footer id="bottom-bar">
+      <div class="bottom-left">
+        <span class="bottom-dot"></span>
+        <span id="bottom-status-text">Status: Ready</span>
+        <span>&middot;</span>
+        <span>Dataset: <strong id="bottom-dataset">student_test</strong></span>
+        <span>&middot;</span>
+        <span>Trip: <strong id="bottom-selected-trip">00000052</strong></span>
+      </div>
+
+      <div class="bottom-right">
+        <span>Pipeline: <strong>AEQD Metric + Spatial KD-Tree + Shallow MLP + HMM Viterbi</strong></span>
+        <span>&middot;</span>
+        <span id="bottom-latency">Latency: —</span>
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- Application Controller -->
+  <script src="app.js"></script>
+  <script src="/static/app.js"></script>
+</body>
+</html>

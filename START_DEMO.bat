@@ -1,42 +1,102 @@
 @echo off
-setlocal
+setlocal enabledelayedexpansion
+title PathSnap Demonstration Launcher
 cd /d "%~dp0"
-echo =============================================
-echo   PathSnap - Map-Matching Demo Launcher
-echo =============================================
-set "PYTHON_CMD=python"
-python -c "import numpy,scipy,matplotlib,folium,fastapi,uvicorn" >nul 2>&1
-if errorlevel 1 (
-  echo Required packages not found in system Python.
-  if not exist ".venv\Scripts\python.exe" (
-    echo Creating virtual environment...
-    python -m venv .venv || goto :error
-  )
-  if not exist ".venv\installed.ok" (
-    echo Installing Python dependencies. Internet is needed for this first install unless cached.
-    .venv\Scripts\python.exe -m pip install --upgrade pip || goto :error
-    .venv\Scripts\python.exe -m pip install -r requirements.txt || goto :error
-    echo ok>.venv\installed.ok
-  )
-  set "PYTHON_CMD=.venv\Scripts\python.exe"
+
+echo ===============================================================================
+echo                PathSnap - Map-Matching and Route Reconstruction
+echo                              Interactive Demo Launcher
+echo ===============================================================================
+echo.
+
+:: 1. Check Python
+where python >nul 2>&1
+if %ERRORLEVEL% neq 0 (
+    echo [ERROR] Python was not found in PATH. Please install Python 3.10+ and re-run.
+    pause
+    exit /b 1
+)
+
+:: 2. Check Virtual Environment
+if not exist ".venv\Scripts\python.exe" (
+    echo [*] Creating virtual environment (.venv)...
+    python -m venv .venv
+    if %ERRORLEVEL% neq 0 (
+        echo [ERROR] Failed to create virtual environment.
+        pause
+        exit /b 1
+    )
+    echo [*] Installing dependencies from requirements.txt...
+    .\.venv\Scripts\pip.exe install --upgrade pip
+    .\.venv\Scripts\pip.exe install -r requirements.txt
+    if %ERRORLEVEL% neq 0 (
+        echo [ERROR] Failed to install dependencies.
+        pause
+        exit /b 1
+    )
 ) else (
-  echo Using system Python because the required packages are already installed.
+    echo [*] Using existing virtual environment: .venv
 )
-%PYTHON_CMD% scripts\extract_dataset.py || goto :error
-if not exist "outputs\eda\summary.json" (
-  echo Generating actual dataset exploration outputs...
-  %PYTHON_CMD% scripts\run_eda.py || goto :error
-)
-if not exist "outputs\student_test_baseline_summary.csv" (
-  echo Running the baseline on all 10 student-testing trips...
-  %PYTHON_CMD% scripts\summarize_student_baseline.py || goto :error
-)
+
 echo.
-echo Open http://127.0.0.1:8000 in your browser.
-echo Keep this terminal open to show live API inference logs.
-echo Press Ctrl+C to stop the server.
+echo Select Demonstration Option:
+echo   [1] Start Web UI and REST API server (FastAPI at http://localhost:8000)
+echo   [2] Run HMM Sequence Reconstruction on Student Test Trips
+echo   [3] Generate Visualizations and HTML Consolidated Report
+echo   [4] Run Unit / Smoke Tests
+echo   [5] Exit
 echo.
-%PYTHON_CMD% -m uvicorn pathsnap.api:app --app-dir src --host 127.0.0.1 --port 8000 --access-log
-:error
-if errorlevel 1 pause
-endlocal
+set /p OPTION="Enter choice [1-5] (default=1): "
+if "%OPTION%"=="" set OPTION=1
+
+if "%OPTION%"=="1" goto launch_api
+if "%OPTION%"=="2" goto launch_hmm
+if "%OPTION%"=="3" goto launch_viz
+if "%OPTION%"=="4" goto launch_tests
+if "%OPTION%"=="5" goto exit_script
+
+echo Invalid choice. Defaulting to Web UI and REST API...
+goto launch_api
+
+:launch_api
+echo.
+echo [*] Starting PathSnap FastAPI server on http://localhost:8000...
+echo [*] Opening browser to Web UI...
+start "" "http://localhost:8000"
+.\.venv\Scripts\python.exe -m uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload
+goto end
+
+:launch_hmm
+echo.
+echo [*] Running HMM Viterbi Route Reconstruction across student test trips...
+.\.venv\Scripts\python.exe src\hmm_viterbi.py
+echo.
+echo [*] HMM evaluation completed. Results saved to results\hmm_vs_classifier.csv
+pause
+goto end
+
+:launch_viz
+echo.
+echo [*] Generating figures and Folium maps...
+.\.venv\Scripts\python.exe src\visualizations.py
+echo [*] Compiling consolidated HTML and PDF reports...
+.\.venv\Scripts\python.exe src\build_report.py
+echo [*] Reports generated:
+echo     - results\consolidated_report.html
+echo     - results\consolidated_report.pdf
+start "" "results\consolidated_report.html"
+pause
+goto end
+
+:launch_tests
+echo.
+echo [*] Running unit and pipeline tests...
+.\.venv\Scripts\python.exe -m unittest discover -s tests -v
+pause
+goto end
+
+:exit_script
+echo Exiting.
+exit /b 0
+
+:end
